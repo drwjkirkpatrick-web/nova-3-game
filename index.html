@@ -69,6 +69,23 @@
             background: #0ff;
             color: #000;
         }
+        /* CRT scanline overlay */
+        #crt-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+        }
         /* Spaceport specific styling (drawn on canvas, but for reference) */
         #spaceport-ui {
             position: absolute;
@@ -106,6 +123,8 @@
 <body>
 
     <canvas id="gameCanvas"></canvas>
+
+    <div id="crt-overlay"></div>
 
     <div id="ui-overlay">
         <div id="credits" class="hud-element">Credits: 5000</div>
@@ -193,6 +212,8 @@
             credits: 5000,
             ship: null,
             galaxy: null,
+            showGalaxyMap: false,
+            currentSystem: null,
             playerSystem: null,
             isPaused: true,
             isGameOver: false,
@@ -589,6 +610,89 @@
         }
         
         // =========================================================================
+        // GALAXY CLASS (star map for hyperspace navigation)
+        // =========================================================================
+
+        class Galaxy {
+            constructor(systems) {
+                this.systems = systems;
+                this.scale = 0.35; // Scale galaxy coords to minimap size
+                this.offsetX = 60;
+                this.offsetY = 40;
+            }
+
+            draw(ctx, currentSystem) {
+                // Dark overlay
+                ctx.fillStyle = 'rgba(0, 0, 20, 0.92)';
+                ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+
+                // Title
+                ctx.fillStyle = '#0ff';
+                ctx.font = '28px Courier New';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = '#0ff';
+                ctx.shadowBlur = 10;
+                ctx.fillText('GALAXY MAP', CONFIG.WIDTH / 2, 40);
+                ctx.shadowBlur = 0;
+
+                // Draw hyperlanes (connections)
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                const drawn = new Set();
+                for (const sys of this.systems) {
+                    for (const conn of sys.connections) {
+                        const key = [sys.id, conn.id].sort().join('-');
+                        if (drawn.has(key)) continue;
+                        drawn.add(key);
+                        ctx.beginPath();
+                        ctx.moveTo(sys.x * this.scale + this.offsetX, sys.y * this.scale + this.offsetY);
+                        ctx.lineTo(conn.x * this.scale + this.offsetX, conn.y * this.scale + this.offsetY);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw systems
+                ctx.font = '14px Courier New';
+                ctx.textAlign = 'left';
+                for (const sys of this.systems) {
+                    const sx = sys.x * this.scale + this.offsetX;
+                    const sy = sys.y * this.scale + this.offsetY;
+                    const isCurrent = currentSystem && sys.id === currentSystem.id;
+
+                    // System node
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, isCurrent ? 8 : 5, 0, Math.PI * 2);
+                    ctx.fillStyle = isCurrent ? '#0ff' : '#08a';
+                    ctx.shadowColor = isCurrent ? '#0ff' : 'transparent';
+                    ctx.shadowBlur = isCurrent ? 12 : 0;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+
+                    // System name
+                    ctx.fillStyle = isCurrent ? '#0ff' : '#aaa';
+                    ctx.fillText(sys.name, sx + 10, sy + 4);
+                }
+
+                // Instructions
+                ctx.fillStyle = '#888';
+                ctx.font = '16px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('Press M to close map', CONFIG.WIDTH / 2, CONFIG.HEIGHT - 30);
+            }
+
+            getSystemAt(mx, my) {
+                for (const sys of this.systems) {
+                    const sx = sys.x * this.scale + this.offsetX;
+                    const sy = sys.y * this.scale + this.offsetY;
+                    const dx = mx - sx;
+                    const dy = my - sy;
+                    if (dx * dx + dy * dy < 100) return sys;
+                }
+                return null;
+            }
+        }
+
+        // =========================================================================
         // GAME MANAGEMENT
         // =========================================================================
 
@@ -622,6 +726,9 @@
                     if (e.code === 'Escape') {
                         this.togglePause();
                     }
+                    if (e.code === 'KeyM' && !gameState.isPaused && !gameState.isGameOver) {
+                        gameState.showGalaxyMap = !gameState.showGalaxyMap;
+                    }
                 });
                 window.addEventListener('keyup', (e) => {
                     gameState.keys[e.code] = false;
@@ -632,7 +739,24 @@
                     gameState.mouse.y = e.clientY - rect.top;
                 });
                 canvas.addEventListener('mousedown', (e) => {
-                    if (!gameState.isPaused && !gameState.isSpaceportMode) {
+                    if (gameState.showGalaxyMap && gameState.galaxy) {
+                        // Galaxy map click — jump to clicked system
+                        const rect = canvas.getBoundingClientRect();
+                        const mx = e.clientX - rect.left;
+                        const my = e.clientY - rect.top;
+                        const target = gameState.galaxy.getSystemAt(mx, my);
+                        if (target && target !== gameState.currentSystem) {
+                            // Check fuel
+                            if (gameState.ship.fuel >= 20) {
+                                gameState.ship.fuel -= 20;
+                                gameState.currentSystem = target;
+                                gameState.ship.x = CONFIG.WIDTH / 2;
+                                gameState.ship.y = CONFIG.HEIGHT / 2;
+                                gameState.showGalaxyMap = false;
+                                this.saveGame();
+                            }
+                        }
+                    } else if (!gameState.isPaused && !gameState.isSpaceportMode) {
                         this.handleCombatInput();
                     } else if (gameState.isSpaceportMode) {
                         this.handleSpaceportClick(e);
@@ -846,9 +970,8 @@
                     }
                 }
                 gameState.galaxy = new Galaxy(gameState.systems);
+                gameState.currentSystem = gameState.systems[0]; // Start at Sol
             },
-
-            // --- Ship Operations ---
 
             buyShip(system, type = null) {
                 if (type) {
@@ -1202,6 +1325,11 @@
                 // 3. Draw UI
                 this.drawHUD();
                 this.drawMinimap();
+
+                // 4. Draw galaxy map if open
+                if (gameState.showGalaxyMap && gameState.galaxy) {
+                    gameState.galaxy.draw(this.ctx, gameState.currentSystem);
+                }
             },
 
             // --- Game Loop ---
