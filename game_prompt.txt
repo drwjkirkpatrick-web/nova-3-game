@@ -1,1 +1,99 @@
-placeholder
+Create "NOVA-3" — a browser-based space trading and combat game inspired by Escape Velocity Nova (2002).
+
+CONCEPT:
+Top-down 2D space game. Player pilots a ship between star systems, trades commodities, fights pirates and aliens, upgrades ships, takes missions, and explores a living galaxy. Newtonian momentum physics. Real-time combat.
+
+CORE GAME:
+
+1. SHIP PHYSICS: Newtonian momentum — thrust applies acceleration, ship coasts when not thrusting. Rotation with left/right arrows. Up = thrust (engine flame visible). Down = reverse thrust. Top speed cap with momentum drift.
+
+2. STAR MAP: Galaxy map with 6-8 star systems connected by hyperspace lanes. Press M to open map. Click a connected system to hyperspace jump (consumes fuel). Each system has a planet/spaceport.
+
+3. PLANET LANDING: Fly near a planet and press L to land. Shows spaceport interface:
+   - Trade commodities (buy low, sell high — prices vary by system)
+   - Shipyard (buy new ships with different stats: speed, shields, weapons, cargo)
+   - Outfitter (buy upgrades: better weapons, shield boosters, afterburners, cargo expansions)
+   - Mission computer (accept cargo runs, bounty hunts, passenger missions)
+
+4. COMBAT: Real-time top-down space combat. SPACE fires lasers/missiles. Enemy ships (pirates, aliens) with AI: chase, shoot, flee when damaged. Ships have shields (regenerate) and armor (hull damage = permanent until repaired at spaceport). Explosions with particle debris.
+
+5. TRADING: 6 commodity types (food, metals, medicine, tech, luxury, contraband). Each system produces some cheaply and demands others at premium. Buy low, sell high. Cargo limited by ship capacity. Dynamic prices shift slightly each visit.
+
+6. SHIPS: 4-5 ship classes:
+   - Shuttle (starter: slow, small cargo, weak shields)
+   - Cargo Freighter (big cargo, slow, decent shields)
+   - Fighter (fast, strong shields, small cargo, good weapons)
+   - Warship (best shields/weapons, medium cargo, expensive)
+   - Each with unique sprite shape drawn on canvas
+
+7. MISSIONS: 3 mission types:
+   - Cargo delivery: take X units of commodity to system Y by deadline
+   - Bounty: hunt a specific pirate in a named system
+   - Passenger: transport VIP to a system (requires passenger quarters)
+
+8. ECONOMY: Start with 5000 credits. Earn through trade, missions, bounty hunting. Ship upgrades cost credits. Death = lose uninsured cargo (insurance purchasable).
+
+9. PERSISTENCE: Save game state to localStorage — credits, ship, cargo, system, missions. Auto-save on planet landing.
+
+VISUALS (canvas-drawn, no external images):
+- Player ship: distinct triangle/polygon shape per ship class, directional facing
+- Engine flame: animated orange/blue particles when thrusting
+- Enemy ships: red-tinted variants of ship shapes
+- Planets: colored circles with surface detail (atmosphere glow ring)
+- Stars: parallax starfield (3 layers, different speeds)
+- Laser bolts: bright colored lines with glow
+- Missiles: small squares with trail particles
+- Explosions: expanding particle bursts (orange/red debris)
+- Shield hits: blue flash ripple on ship
+- HUD: health bar, shield bar, fuel gauge, credits, cargo capacity, minimap (top-right corner showing nearby ships and planets)
+- Galaxy map: nodes (systems) connected by lines (hyperlanes), current system highlighted
+- Spaceport interface: canvas-drawn buttons and text panels (no HTML forms)
+- Damage sparks on low hull
+- Warp effect: star streaks during hyperspace jump
+
+AUDIO (Web Audio API):
+- Laser fire: short high-pitched zap
+- Missile launch: low whoosh
+- Explosion: noise burst with lowpass decay
+- Shield hit: metallic ping
+- Engine thrust: low rumble (looped, volume by throttle)
+- Hyperspace jump: rising sweep tone
+- Planet landing: landing chime
+- Purchase/upgrade: coin chime
+- Damage warning alarm at low hull
+- M key toggles mute
+
+UI:
+- Title screen: "NOVA-3" in glowing cyan font, subtitle "A Space Trading Adventure", "PRESS SPACE TO LAUNCH"
+- In-flight HUD: shields (blue bar), armor (green bar), fuel (yellow bar), credits (top-left), current system name (top-center), minimap (top-right)
+- Planet approach prompt: "PRESS L TO LAND" when near planet
+- Galaxy map overlay: system names, hyperlane connections, fuel cost display
+- Spaceport: tabbed interface (Trade / Shipyard / Outfitter / Missions) drawn on canvas
+- Game over: "SHIP DESTROYED" with stats (credits earned, systems visited, enemies defeated), "PRESS SPACE TO RESTART"
+- Pause with P key
+
+CONTROLS:
+- Arrow keys / WASD: rotate left, rotate right, thrust, reverse
+- SPACE: fire primary weapon
+- M: toggle galaxy map
+- L: land on planet (when close)
+- T: target nearest enemy
+- P: pause
+- 1-4: select spaceport tab (when landed)
+- Mouse click: interact with spaceport buttons
+
+DIFFICULTY:
+- Pirate encounters scale with total credits earned
+- Alien ships appear in border systems (dangerous but high bounty)
+- Fuel runs out — must refuel at spaceports (costs credits)
+- Hull damage requires repair at spaceport (costs credits)
+
+STYLE:
+- Dark space background with nebula gradients (purple, blue, dark red)
+- Cyan/teal UI accent color
+- Glow effects on lasers, engines, shields
+- Monospace font for HUD and interface
+- Subtle screen shake on nearby explosions
+- CRT scanline overlay (subtle)
+
+Keep it complete and playable. Output the full HTML file now.
